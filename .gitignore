@@ -1,0 +1,3 @@
+*.retry
+*.log
+id_ssh_rsa*
