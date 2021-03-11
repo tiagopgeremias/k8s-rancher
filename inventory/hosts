@@ -1,0 +1,23 @@
+[all:vars]
+SSH_KEYGEN_PATH=roles/kubernetes/templates/
+
+[k8s-stack:children]
+k8s-rancher
+k8s-cluster
+
+[k8s-rancher:vars]
+RANCHER_ADMIN_PASSWORD=admin
+CLUSTER_NAME=ansiblek8s
+
+[k8s-rancher]
+0.0.0.200
+
+[k8s-cluster:vars]
+USER_KB8S=user_rke
+CLUSTER_DOMAIN=k8scluster.net
+TRAEFIK_ADDRESS=traefik.k8scluster.net
+
+[k8s-cluster]
+0.0.0.201 roles="controlplane, etcd" primary=true
+0.0.0.202 roles="worker"
+0.0.0.203 roles="worker"

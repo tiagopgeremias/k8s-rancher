@@ -1,0 +1,57 @@
+- name: Check Requirements Memory
+  fail:
+    msg: "There are not enough resources for provisioning"
+  when: "('k8s-rancher' in group_names and ansible_facts['memory_mb']['real']['total'] < 3700) or ('k8s-cluster' in group_names and ansible_facts['memory_mb']['real']['total'] < 1800)"
+
+- name: disable SELinux
+  command: setenforce 0
+  ignore_errors: yes
+
+- name: disable SELinux on reboot
+  selinux:
+    state: disabled
+  ignore_errors: yes
+  register: disable_selinux
+
+- name: Remove Swap.
+  replace:
+    path: /etc/fstab
+    regexp: '^(\/swap.*)'
+    replace: '#\1'
+  register: remove_swap
+
+- name: Stop and disable firewalld.
+  service:
+    name: firewalld
+    state: stopped
+    enabled: false
+
+- name: Install Epel-Release
+  yum:
+    name: epel-release
+    state: present
+
+- name: Update system
+  yum:
+    name: "*"
+    state: latest
+
+- name: Install basic package
+  yum:
+    name:
+      - python-pip
+    state: present
+
+- name: Reboot system
+  shell: sleep 2 && shutdown -r now
+  async: 5
+  poll: 0
+  when: disable_selinux.changed or remove_swap.changed
+
+- name: Reestablishing the connection with the hosts
+  wait_for_connection:
+    connect_timeout: 20
+    sleep: 5
+    delay: 5
+    timeout: 300
+  when: disable_selinux.changed or remove_swap.changed

@@ -1,0 +1,87 @@
+- name: install kubectl
+  yum:
+    name: kubectl
+    state: present
+  
+- name: Install RKE
+  get_url:
+    url: https://github.com/rancher/rke/releases/download/v0.1.15/rke_linux-amd64
+    dest: /usr/bin/rke
+    owner: "{{ USER_KB8S }}"
+    group: docker
+    mode: '0755'
+  
+- name: Download Helm Tiller
+  unarchive:
+    src: https://storage.googleapis.com/kubernetes-helm/helm-v2.11.0-linux-amd64.tar.gz
+    dest: /tmp/
+    remote_src: yes
+  
+- name: Install Helm Tiller
+  shell: mv /tmp/linux-amd64/tiller /usr/bin/ && mv /tmp/linux-amd64/helm /usr/bin/ && rm -rf /tmp/linux-amd64
+  
+- name: Copy RKE configuration
+  template:
+    src: cluster-kubernetes.yml.j2
+    dest: "/home/{{ USER_KB8S }}/cluster-kubernetes.yml"
+    owner: "{{ USER_KB8S }}"
+    group: docker
+
+- name: Run cluster
+  shell: rke up --config /home/{{ USER_KB8S }}/cluster-kubernetes.yml --ignore-docker-version
+  become_user: "{{ USER_KB8S }}"
+  register: run_cluster
+  run_once: true
+
+- name: Create directory .kube
+  file:
+    path: /home/{{USER_KB8S}}/.kube
+    state: directory
+  become_user: "{{ USER_KB8S }}"
+  run_once: true
+
+- name: Move .kube/congig
+  shell: mv /home/{{ USER_KB8S }}/kube_config_cluster-kubernetes.yml /home/"{{ USER_KB8S }}"/.kube/config
+  become_user: "{{ USER_KB8S }}"
+  run_once: true
+
+- name: Create Tiller service in kube-system
+  shell: kubectl -n kube-system create serviceaccount tiller
+  become_user: "{{ USER_KB8S }}"
+  run_once: true
+
+- name: Create Tiller Role
+  shell: kubectl create clusterrolebinding tiller --clusterrole cluster-admin --serviceaccount=kube-system:tiller
+  become_user: "{{ USER_KB8S }}"
+  run_once: true
+
+- name: Init Tiller
+  shell: helm init --stable-repo-url https://charts.helm.sh/stable --service-account tiller
+  become_user: "{{ USER_KB8S }}"
+  run_once: true
+  
+- name: Traefik cluster role
+  shell: kubectl apply -f https://raw.githubusercontent.com/traefik/traefik/v1.7/examples/k8s/traefik-rbac.yaml
+  become_user: "{{ USER_KB8S }}"
+  run_once: true
+
+- name: Deploy Traefik
+  shell: kubectl apply -f https://raw.githubusercontent.com/traefik/traefik/v1.7/examples/k8s/traefik-ds.yaml
+  become_user: "{{ USER_KB8S }}"
+  run_once: true
+
+- name: Copy template Traefik WebUI
+  template:
+    src: traefik-ui.yaml.j2
+    dest: "/home/{{ USER_KB8S }}/traefik-ui.yaml"
+    owner: "{{ USER_KB8S }}"
+    group: docker
+
+- name: Deploy Traefik WebUI
+  shell: kubectl apply -f /home/"{{ USER_KB8S }}"/traefik-ui.yaml
+  become_user: "{{ USER_KB8S }}"
+  run_once: true
+
+- name: Join cluster in Rancher
+  shell: "{{ hostvars[groups['k8s-rancher'][0]]['command_join_cluster'] }}"
+  become_user: "{{ USER_KB8S }}"

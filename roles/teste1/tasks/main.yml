@@ -1,0 +1,12 @@
+- debug:
+    msg: "{{ group_names }}"
+
+- name: Check Requirements Memory
+  fail:
+    msg: "There are not enough resources for provisioning"
+  when: "('k8s-rancher' in group_names and ansible_facts['memory_mb']['real']['total'] < 4096) or ('k8s-cluster' in group_names and ansible_facts['memory_mb']['real']['total'] < 2048)"
+
+- name: Set Fact
+  set_fact:
+    command_join_cluster: "esse foi rodado no 127.0.0.1"
+  when: "'http_proxy' in ansible_env or 'https_proxy' in ansible_env"

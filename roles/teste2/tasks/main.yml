@@ -1,0 +1,3 @@
+- name: Get Facts
+  debug:
+    msg: "{{  hostvars[groups['teste-1'][0]]['command_join_cluster'] }}"

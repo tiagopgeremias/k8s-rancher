@@ -1,0 +1,40 @@
+nodes:
+  {% for host in groups['k8s-cluster'] %}
+  - address: {{ host }}
+      user: user_rke
+      role: [{{ hostvars[host]['roles'] }}] 
+  {% endfor %}
+  
+
+ingress:
+  provider: none 
+  
+services:
+
+  etcd:
+    snapshot: true
+    creation: 6h
+    retention: 24h
+
+  kube-controller:
+
+    # CIDR pool used to assign IP addresses to pods in the cluster
+    cluster_cidr: 10.42.0.0/16
+
+    # This must match the service_cluster_ip_range in kube-api
+    service_cluster_ip_range: 10.43.0.0/16
+
+  kubelet:
+
+    # Base domain for the cluster
+    cluster_domain: {{ CLUSTER_DOMAIN }}
+
+    # IP address for the DNS service endpoint
+    cluster_dns_server: 10.43.0.10
+
+    # Fail if swap is on
+    fail_swap_on: false
+
+    # Set max pods to 250 instead of default 110
+    extra_args:
+      max-pods: 250

@@ -1,0 +1,87 @@
+- name: Waiting Rancher UP
+  shell: "while ! curl -k -s https://{{ inventory_hostname }}/ping > /dev/null; do sleep 3; done"
+
+- name: Get login Token
+  uri:
+    url: "https://{{ inventory_hostname }}/v3-public/localProviders/local?action=login"
+    method: POST
+    status_code: [200, 201]
+    validate_certs: false
+    body_format: json
+    return_content: false
+    headers:
+      Content-Type: application/json
+    body: "{\"username\":\"admin\",\"password\":\"admin\"}"
+  register: login_token
+
+- name: Change password admin
+  uri:
+    url: "https://{{ inventory_hostname }}/v3/users?action=changepassword"
+    method: POST
+    status_code: [200, 201]
+    validate_certs: false
+    body_format: json
+    return_content: false
+    headers:
+      Content-Type: application/json
+      Authorization: "Bearer {{ login_token.json.token }}"
+    body: "{\"currentPassword\":\"admin\",\"newPassword\":\"{{ RANCHER_ADMIN_PASSWORD }}\"}"
+
+- name: Create api token
+  uri:
+    url: "https://{{ inventory_hostname }}/v3/token"
+    method: POST
+    status_code: [200, 201]
+    validate_certs: false
+    body_format: json
+    return_content: false
+    headers:
+      Content-Type: application/json
+      Authorization: "Bearer {{ login_token.json.token }}"
+    body: "{\"type\":\"token\",\"description\":\"ansibleprovisioning\"}"
+  register: api_token
+
+- name: Set server url
+  uri:
+    url: "https://{{ inventory_hostname }}/v3/settings/server-url"
+    method: PUT
+    status_code: [200, 201]
+    validate_certs: false
+    body_format: json
+    return_content: false
+    headers:
+      Content-Type: application/json
+      Authorization: "Bearer {{ api_token.json.token }}"
+    body: "{\"name\":\"server-url\",\"value\":\"https://{{ inventory_hostname }}\"}"
+
+- name: Create Cluster
+  uri:
+    url: "https://{{ inventory_hostname }}/v3/cluster"
+    method: POST
+    status_code: [200, 201]
+    validate_certs: false
+    body_format: json
+    return_content: false
+    headers:
+      Content-Type: application/json
+      Authorization: "Bearer {{ api_token.json.token }}"
+    body: "{\"type\":\"cluster\",\"nodes\":[],\"name\":\"{{ CLUSTER_NAME }}\"}"
+  register: create_cluster
+  
+- name: Cluster info
+  uri:
+    url: "https://{{ inventory_hostname }}/v3/clusterregistrationtoken"
+    method: POST
+    status_code: [200, 201]
+    validate_certs: false
+    body_format: json
+    return_content: false
+    headers:
+      Content-Type: application/json
+      Authorization: "Bearer {{ api_token.json.token }}"
+    body: "{\"type\":\"clusterRegistrationToken\",\"clusterId\":\"{{ create_cluster.json.id }}\"}"
+  register: cluster_info
+  
+- name: Display all server names
+  set_fact:
+    command_join_cluster: "{{ cluster_info.json.insecureCommand }}"

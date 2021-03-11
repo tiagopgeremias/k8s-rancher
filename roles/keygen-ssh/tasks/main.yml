@@ -1,0 +1,5 @@
+- name: Create SSH-key
+  openssh_keypair:
+    path: "{{ playbook_dir }}/{{ SSH_KEYGEN_PATH }}id_ssh_rsa"
+    size: 2048
+    force: true

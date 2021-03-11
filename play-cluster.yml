@@ -1,0 +1,31 @@
+---
+
+- hosts: localhost
+  become: false
+  roles:
+    - keygen-ssh
+
+- hosts: k8s-stack
+  any_errors_fatal: true
+  remote_user: vagrant
+  become_user: root
+  become: yes
+  roles:
+    - common
+    - docker
+
+- hosts: k8s-rancher
+  remote_user: vagrant
+  become_user: root
+  become: yes
+  roles:
+    - rancher
+    - rancher-config
+
+- hosts: k8s-cluster
+  remote_user: vagrant
+  become_user: root
+  become: yes
+  roles:
+    - kubernetes
+

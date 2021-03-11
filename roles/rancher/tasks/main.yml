@@ -1,0 +1,25 @@
+- name: Create Rancher directory
+  file:
+    path: /opt/rancher
+    state: directory
+
+- name: Install docker-py
+  pip:
+    name: docker-py
+
+- name: Start rancher
+  docker_container:
+    name: rancher
+    restart_policy: unless-stopped
+    privileged: true
+    image: rancher/rancher
+    published_ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /opt/rancher:/var/lib/rancher
+
+- name: Install docker-py
+  pip:
+    name: docker-py
+    state: absent

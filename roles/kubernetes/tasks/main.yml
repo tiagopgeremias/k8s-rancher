@@ -1,0 +1,77 @@
+- name: add Kubernetes' YUM repository
+  yum_repository:
+   name: Kubernetes
+   description: Kubernetes YUM repository
+   baseurl: https://packages.cloud.google.com/yum/repos/kubernetes-el7-x86_64
+   gpgkey: https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+   gpgcheck: yes
+
+- name: Create user "{{ USER_KB8S }}"
+  user:
+    name: "{{ USER_KB8S }}"
+    createhome: yes
+    state: present
+    shell: /bin/bash
+    group: docker
+
+- name: allow '{{USER_KB8S}}' to have passwordless sudo
+  lineinfile:
+    dest: /etc/sudoers
+    line: '{{USER_KB8S}} ALL=(ALL) NOPASSWD: ALL'
+    validate: 'visudo -cf %s'
+  
+- name: Create directory .ssh
+  file:
+    path: "/home/{{USER_KB8S}}/.ssh"
+    state: directory
+    owner: "{{USER_KB8S}}"
+    group: docker
+
+- template:
+    src: "templates/id_ssh_rsa"
+    dest: "/home/{{USER_KB8S}}/.ssh/id_rsa"
+    owner: "{{USER_KB8S}}"
+    group: docker
+    mode: '0600'
+
+- template:
+    src: "templates/id_ssh_rsa.pub"
+    dest: "/home/{{USER_KB8S}}/.ssh/id_rsa.pub"
+    owner: "{{USER_KB8S}}"
+    group: docker
+    mode: '0600'
+
+- name: set up authorized keys for the {{USER_KB8S}} user
+  authorized_key: user={{USER_KB8S}} key="{{item}}"
+  with_file:
+    - "{{ playbook_dir }}/{{ SSH_KEYGEN_PATH }}id_ssh_rsa.pub"
+
+- name: ensure net.bridge.bridge-nf-call-ip6tables is set to 1
+  sysctl:
+   name: net.bridge.bridge-nf-call-ip6tables
+   value: 1
+   state: present
+   
+- name: ensure net.bridge.bridge-nf-call-iptables is set to 1
+  sysctl:
+   name: net.bridge.bridge-nf-call-iptables
+   value: 1
+   state: present
+
+- pip:
+    name: pexpect
+
+- name: install iscsi-initiator-utils
+  yum:
+    name: iscsi-initiator-utils
+    state: present
+
+- name: install iscsi-initiator-utils
+  yum:
+    name: iscsi-initiator-utils
+    state: present
+
+- name: Include primary node configuration
+  include_role:
+    name: kubernetes-node-primary
+  when: "primary is defined"
