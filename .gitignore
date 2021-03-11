@@ -1,3 +1,4 @@
 *.retry
 *.log
 id_ssh_rsa*
+kubernets-commands.md
