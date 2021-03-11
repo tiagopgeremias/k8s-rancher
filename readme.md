@@ -6,7 +6,7 @@ Provisionar de forma rápida e padronizada um cluster Kubernets gerenciado pelo 
 
 Para a criação do cluster Kubernetes foi utilizado [RKE (Rancher Kubernetes Engine)](https://rancher.com/products/rke/) e [Traefik](https://traefik.io/) como ingress controller.
 
-Há configuração do Rancher foi totalmente realizada utilizando a [Rancher 2.x API](https://rancher.com/docs/rancher/v2.x/en/api/), alguns ajustes na configuração precisam ser realizados conforme a necessidade, para isso consulte as [configurações](#configuração)
+Há configuração do Rancher foi realizada utilizando a [Rancher 2.x API](https://rancher.com/docs/rancher/v2.x/en/api/), alguns ajustes na configuração precisam ser realizados conforme a necessidade, para isso consulte as [configurações](#configuração)
 
 Caso a execução do playbook seja realizado em VM's ou computadores que estejam na rede local informe o **IP dos hosts** no inventario, caso contrario pode apresentar erro de DNS.
 
